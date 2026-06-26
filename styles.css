@@ -192,17 +192,30 @@ h1,h2,h3{font-weight:400;}
 }
 .play-btn svg{width:17px;height:17px;}
 .play-btn:hover{transform:translateX(-50%) scale(1.1);background:rgba(0,0,0,.55);}
+/* 영상 챕터 태그 (클릭 시 해당 초로 이동) */
+.cine-tags{
+  position:absolute;z-index:5;left:0;right:0;bottom:28px;
+  display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:0 24px;
+}
+.cine-tag{
+  font-family:var(--kr-body);font-size:14px;font-weight:600;letter-spacing:2px;
+  color:#fff;background:rgba(0,0,0,.1);border:1px solid rgba(255, 255, 255, .5); border-radius:50px;
+  padding:8px 18px;cursor:pointer;line-height:1.4;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  transition:background .2s,color .2s;
+}
+.cine-tag:hover,.cine-tag.active{background:rgba(255, 255, 255, .6); color:#2b2825;}
 
 /* ===== Around Samcheok ===== */
 .around{padding:118px 24px 120px;background:var(--bg-soft);}
 .around-head{text-align:center;max-width:1440px;margin:0 auto 60px;}
-.eyebrow{display:block;font-size:14px;font-weight:600;letter-spacing:.34em;color:var(--ink-faint);margin-bottom:14px;}
-.around-head .script-title{font-size:clamp(50px,5vw,70px);line-height:1;color:var(--ink);margin-bottom:18px;}
+.eyebrow{display:block;font-size:14px;font-weight:600;letter-spacing:.34em;color:var(--ink-faint);margin-bottom:8px;}
+.around-head .script-title{font-size:clamp(50px,5vw,70px);line-height:1;color:var(--ink);margin-bottom:4px;}
 .around-head p{font-size:18px;color:var(--ink-soft);line-height:1.6;}
 .around-cards{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);align-items:start;}
 .place-card--lift{margin-top:96px;}                    /* 가운데 카드 stagger */
 .place-img{aspect-ratio:459 / 526;border-radius:8px;margin-bottom:24px;box-shadow:0 18px 40px rgba(60,48,40,.13);}
-.place-card h3{font-family:var(--kr-head);font-size:32px;letter-spacing:.03em;color:var(--ink);margin-bottom:14px;}
+.place-card h3{font-family:var(--kr-head);font-size:32px;letter-spacing:.03em;color:var(--ink);margin-bottom:2px;}
 .place-card h3 span{font-family:var(--kr-body);font-size:14px;color:var(--ink-faint);font-weight:400;letter-spacing:0;}
 .place-card p{font-family:var(--en-body);font-size:16px;color:var(--ink-soft);line-height:1.7;}
 
@@ -227,7 +240,7 @@ h1,h2,h3{font-weight:400;}
 .location-card{background:#fff;width:480px;max-width:100%;padding:48px;border-radius:8px;box-shadow:0 24px 60px rgba(40,30,25,.18);}
 .location-card h2{font-family:var(--kr-head);font-size:32px;letter-spacing:.04em;color:var(--ink);margin-bottom:26px;}
 .loc-row{margin-bottom:22px;}
-.loc-label{display:block;font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--ink-faint);margin-bottom:8px;}
+.loc-label{display:block;font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--ink-faint);margin-bottom:4px;}
 .loc-row p{font-size:18px;font-weight:300;line-height:1.6;color:var(--ink);}
 .loc-row a:hover{color:var(--accent);}
 .btn-reserve{
@@ -261,7 +274,7 @@ h1,h2,h3{font-weight:400;}
   .gnb-nav.open{transform:translateX(0);}
   .gnb-nav a{font-size:18px;padding:12px 0;opacity:1;}
   .nav-close{display:block;}
-
+  .eyebrow{display:block;font-size:12px;font-weight:600;}
   /* --- Hero: 이미지(비율) + 다크 박스 --- */
   .hero{height:auto;min-height:0;max-height:none;overflow:visible;background:#fff;color:#fff;cursor:auto;padding-bottom:6px;}
   .hero-media{position:relative;aspect-ratio:6 / 5;}
@@ -296,6 +309,8 @@ h1,h2,h3{font-weight:400;}
   .g-imgs.dragging{cursor:grabbing;}
   .g-row1,.g-row2imgs{display:contents;}
   .g-cell{flex:0 0 auto;width:calc((100vw - 36px) / 1.5);aspect-ratio:3 / 4;scroll-snap-align:start;}
+  /* 모바일 갤러리 카드는 등장(패럴랙스) 효과 끔 — 가로 드래그/스크롤 방해 방지 */
+  .gallery .g-cell.reveal{opacity:1;transform:none;transition:none;}
   .g-text{display:block;}
   .g-text h2,.g-text .lead,.spec li{white-space:normal;}  /* 모바일은 줄바꿈 허용 */
   .g-text h2{font-size:28px;letter-spacing:.1em;margin-bottom:10px;}
@@ -307,13 +322,20 @@ h1,h2,h3{font-weight:400;}
   .cinematic{--cine-h:133.333vw;height:var(--cine-h);}     /* 폭 360 기준 높이 480 비율 */
   .cinematic iframe,#yt-player{width:auto;height:140%;}    /* 세로 기준 cover(좌우 잘림) */
   .cine-reveal{clip-path:none;}                            /* 세로 영역이라 좌우 펼침 효과는 생략 */
+  /* 모바일 챕터 태그: 한 줄 가로 슬라이드 */
+  .cine-tags{
+    flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;gap:6px;bottom:22px;padding:0 16px;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .cine-tags::-webkit-scrollbar{display:none;}
+  .cine-tag{flex:0 0 auto;font-size:12px;padding:7px 18px;}
 
   /* --- Around: 세로 스택 + 가로 이미지 --- */
   .around{padding:62px 24px 64px;}
   .around-head{margin-bottom:34px;}
   .around-head .script-title{font-size:42px;}
   .around-head p{font-size:15px;}
-  .around-cards{grid-template-columns:1fr;gap:30px;}
+  .around-cards{grid-template-columns:1fr;gap:32px;}
   .place-card--lift{margin-top:0;}
   .place-img{aspect-ratio:312 / 180;margin-bottom:18px;}
   .place-card h3{font-size:24px;}

@@ -230,6 +230,16 @@ if (ytHost) {
       else { seekToStartIfNeeded(); ytPlayer.playVideo(); }
     });
   }
+
+  // 챕터 태그 클릭 → 해당 초로 이동 후 재생
+  document.querySelectorAll('.cine-tag').forEach((tag) => {
+    tag.addEventListener('click', () => {
+      const t = parseInt(tag.dataset.t, 10);
+      if (ytReady && ytPlayer) { ytPlayer.seekTo(t, true); ytPlayer.playVideo(); }
+      document.querySelectorAll('.cine-tag').forEach((x) => x.classList.remove('active'));
+      tag.classList.add('active');
+    });
+  });
 }
 
 // ===== 스크롤 등장 효과 (Scroll Reveal) =====
