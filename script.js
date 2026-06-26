@@ -174,6 +174,21 @@ const play = document.querySelector('.play-btn');
 const ytHost = document.getElementById('yt-player');
 let ytPlayer = null, ytReady = false, ytInView = false;
 
+// ----- 배경음악(BGM): 영상은 숨기고 소리만 재생 -----
+const BGM_VIDEO_ID = '86gToHFkbiU';
+const BGM_VOLUME = 40;                 // 0~100 (배경음악 볼륨)
+const bgmHost = document.getElementById('bgm-player');
+const bgmBtn = document.querySelector('.bgm-toggle');
+let bgmPlayer = null, bgmReady = false, bgmWanted = true, bgmGestureDone = false;
+function updateBgmBtn() {
+  if (!bgmBtn || !bgmPlayer || !bgmPlayer.getPlayerState) return;
+  bgmBtn.classList.toggle('playing', bgmPlayer.getPlayerState() === YT.PlayerState.PLAYING);
+}
+function startBgm() {
+  if (!bgmReady || !bgmPlayer) return;
+  bgmPlayer.unMute(); bgmPlayer.setVolume(BGM_VOLUME); bgmPlayer.playVideo();
+}
+
 function seekToStartIfNeeded() {
   if (ytPlayer && ytPlayer.getCurrentTime && ytPlayer.getCurrentTime() < VIDEO_START) {
     ytPlayer.seekTo(VIDEO_START, true);
@@ -182,25 +197,37 @@ function seekToStartIfNeeded() {
 
 // 유튜브 API 준비되면 호출됨
 window.onYouTubeIframeAPIReady = function () {
-  if (!ytHost) return;
-  ytPlayer = new YT.Player('yt-player', {
-    videoId: YT_VIDEO_ID,
-    playerVars: { autoplay: 0, controls: 0, mute: 1, start: VIDEO_START, rel: 0,
-                  modestbranding: 1, playsinline: 1, disablekb: 1, fs: 0 },
-    events: {
-      onReady: (e) => {
-        ytReady = true; e.target.mute();
-        if (ytInView) { seekToStartIfNeeded(); e.target.playVideo(); }
-      },
-      onStateChange: (e) => {
-        if (e.data === YT.PlayerState.ENDED) { ytPlayer.seekTo(VIDEO_START, true); ytPlayer.playVideo(); }
-        if (play) {
-          if (e.data === YT.PlayerState.PLAYING) play.classList.remove('is-paused');
-          else if (e.data === YT.PlayerState.PAUSED) play.classList.add('is-paused');
+  if (ytHost) {
+    ytPlayer = new YT.Player('yt-player', {
+      videoId: YT_VIDEO_ID,
+      playerVars: { autoplay: 0, controls: 0, mute: 1, start: VIDEO_START, rel: 0,
+                    modestbranding: 1, playsinline: 1, disablekb: 1, fs: 0 },
+      events: {
+        onReady: (e) => {
+          ytReady = true; e.target.mute();
+          if (ytInView) { seekToStartIfNeeded(); e.target.playVideo(); }
+        },
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.ENDED) { ytPlayer.seekTo(VIDEO_START, true); ytPlayer.playVideo(); }
+          if (play) {
+            if (e.data === YT.PlayerState.PLAYING) play.classList.remove('is-paused');
+            else if (e.data === YT.PlayerState.PAUSED) play.classList.add('is-paused');
+          }
         }
       }
-    }
-  });
+    });
+  }
+  if (bgmHost) {
+    bgmPlayer = new YT.Player('bgm-player', {
+      videoId: BGM_VIDEO_ID,
+      playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: BGM_VIDEO_ID, rel: 0,
+                    playsinline: 1, disablekb: 1, fs: 0 },
+      events: {
+        onReady: () => { bgmReady = true; bgmPlayer.setVolume(BGM_VOLUME); if (bgmWanted && bgmGestureDone) startBgm(); },
+        onStateChange: updateBgmBtn
+      }
+    });
+  }
 };
 
 if (ytHost) {
@@ -240,6 +267,37 @@ if (ytHost) {
       tag.classList.add('active');
     });
   });
+}
+
+// ===== 배경음악: 첫 상호작용 시 자동 재생 + 토글 버튼 =====
+if (bgmHost) {
+  // API 로드 보장(시네마틱이 없을 때 대비)
+  if (!document.querySelector('script[src*="iframe_api"]')) {
+    const t = document.createElement('script'); t.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(t);
+  }
+  // 브라우저 정책상 소리 자동재생이 막히므로, 첫 사용자 제스처 때 재생
+  const kick = (e) => {
+    window.removeEventListener('pointerdown', kick);
+    window.removeEventListener('touchstart', kick);
+    window.removeEventListener('keydown', kick);
+    bgmGestureDone = true;
+    if (e && e.target && e.target.closest && e.target.closest('.bgm-toggle')) return; // 버튼은 버튼 핸들러가 처리
+    if (bgmWanted) startBgm();
+  };
+  window.addEventListener('pointerdown', kick);
+  window.addEventListener('touchstart', kick);
+  window.addEventListener('keydown', kick);
+
+  // 음악 on/off 토글
+  if (bgmBtn) {
+    bgmBtn.addEventListener('click', () => {
+      bgmGestureDone = true;
+      if (!bgmReady) { bgmWanted = true; return; }          // 준비되면 onReady에서 재생
+      if (bgmPlayer.getPlayerState() === YT.PlayerState.PLAYING) { bgmPlayer.pauseVideo(); bgmWanted = false; }
+      else { bgmWanted = true; startBgm(); }
+      updateBgmBtn();
+    });
+  }
 }
 
 // ===== 스크롤 등장 효과 (Scroll Reveal) =====

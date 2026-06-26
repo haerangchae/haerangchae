@@ -166,6 +166,22 @@ h1,h2,h3{font-weight:400;}
 }
 .see-more{display:inline-block;align-self:flex-start;font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--ink);border-bottom:1.5px solid var(--ink);padding-bottom:4px;}
 
+/* ===== 배경음악(BGM) ===== */
+/* 유튜브 영상은 화면 밖으로 숨김(소리만 재생, display:none 쓰면 일부 브라우저에서 멈춰서 off-screen 처리) */
+#bgm-player{position:fixed;left:-10000px;top:0;width:300px;height:170px;opacity:0;pointer-events:none;}
+.bgm-toggle{
+  position:fixed;right:18px;bottom:18px;z-index:120;
+  width:46px;height:46px;border-radius:50%;cursor:pointer;
+  background:rgba(40,38,35,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,.5);color:#fff;
+  display:flex;align-items:center;justify-content:center;transition:background .25s,transform .25s;
+}
+.bgm-toggle:hover{background:rgba(40,38,35,.82);transform:scale(1.06);}
+.bgm-toggle svg{width:22px;height:22px;}
+.bgm-toggle .ic-on{display:none;}             /* 재생 중일 때만 표시 */
+.bgm-toggle.playing .ic-on{display:block;}
+.bgm-toggle.playing .ic-off{display:none;}
+
 /* ===== Cinematic ===== */
 .cinematic{position:relative;width:100%;--cine-h:clamp(420px,42.66vw,820px);height:var(--cine-h);overflow:hidden;background:#000;}
 /* 패럴랙스: 가운데 1:1(정사각형)에서 좌우로 쫙 펼쳐지며 와이드로 열림 */
