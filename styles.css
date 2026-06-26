@@ -1,7 +1,7 @@
 /* ===== Fonts ===== */
 @font-face{
   font-family:'LeeSeoyun';
-  src:url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/LeeSeoyun.woff2') format('woff2');
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff');
   font-weight:normal; font-display:swap;
 }
 
