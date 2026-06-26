@@ -94,17 +94,28 @@ if (heroEl && slides.length > 1) {
   heroEl.addEventListener('pointercancel', () => { dragging = false; startX = null; heroEl.classList.remove('dragging'); });
 }
 
-// ===== Gallery: 1:1 드래그 + 관성 (터치는 네이티브 스크롤) =====
+// ===== Gallery: 마우스 드래그 + 터치 방향판별(가로=슬라이드 / 세로=페이지 스크롤) =====
 const gimgs = document.querySelector('.g-imgs');
 if (gimgs) {
-  let dragging = false, lastX = 0, lastT = 0, vel = 0, raf = null;
+  let raf = null;
   const cancelMomentum = () => { if (raf) { cancelAnimationFrame(raf); raf = null; } };
+  const momentum = (v0) => {                         // 손 뗀 뒤 관성 글라이드
+    let v = v0;
+    const glide = () => {
+      if (Math.abs(v) < 0.4) { gimgs.style.scrollSnapType = ''; raf = null; return; }
+      gimgs.scrollLeft -= v; v *= 0.93;
+      raf = requestAnimationFrame(glide);
+    };
+    cancelMomentum(); raf = requestAnimationFrame(glide);
+  };
+
+  /* --- 마우스 드래그 (데스크톱) --- */
+  let dragging = false, lastX = 0, lastT = 0, vel = 0;
   gimgs.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'mouse') return;          // 터치는 네이티브 스크롤(부드러움) 사용
-    if (e.button !== 0) return;
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;   // 터치는 아래 touch 핸들러가 처리
     cancelMomentum();
     dragging = true; lastX = e.clientX; lastT = e.timeStamp; vel = 0;
-    gimgs.style.scrollSnapType = 'none';            // 드래그 중 스냅 해제 → 손 따라 1:1 이동
+    gimgs.style.scrollSnapType = 'none';
     gimgs.classList.add('dragging');
     try { gimgs.setPointerCapture(e.pointerId); } catch (_) {}
     e.preventDefault();
@@ -112,24 +123,48 @@ if (gimgs) {
   gimgs.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     const dx = e.clientX - lastX;
-    const dt = (e.timeStamp - lastT) || 16;
-    gimgs.scrollLeft -= dx;                          // 움직인 만큼 정확히
-    vel = dx / dt;                                   // px/ms
+    gimgs.scrollLeft -= dx;
+    vel = dx / ((e.timeStamp - lastT) || 16);
     lastX = e.clientX; lastT = e.timeStamp;
   });
-  const release = () => {
+  const mouseUp = () => {
     if (!dragging) return;
     dragging = false; gimgs.classList.remove('dragging');
-    let v = vel * 16;                                // 관성 시작 속도(프레임당 px)
-    const glide = () => {
-      if (Math.abs(v) < 0.4) { gimgs.style.scrollSnapType = ''; raf = null; return; }
-      gimgs.scrollLeft -= v; v *= 0.93;              // 감속
-      raf = requestAnimationFrame(glide);
-    };
-    cancelMomentum(); raf = requestAnimationFrame(glide);
+    momentum(vel * 16);
   };
-  gimgs.addEventListener('pointerup', release);
-  gimgs.addEventListener('pointercancel', release);
+  gimgs.addEventListener('pointerup', mouseUp);
+  gimgs.addEventListener('pointercancel', mouseUp);
+
+  /* --- 터치 (모바일): 방향 판별 ---
+     touch-action:pan-y 라서 세로 swipe는 브라우저가 '페이지 스크롤'로 처리하고,
+     가로 swipe일 때만 여기서 슬라이드(preventDefault). 세로면 손대지 않음 → 페이지 스크롤 안 끊김 */
+  let tx = 0, ty = 0, tScroll = 0, tDir = null, tLastX = 0, tLastT = 0, tVel = 0;
+  gimgs.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    tx = tLastX = t.clientX; ty = t.clientY;
+    tScroll = gimgs.scrollLeft; tDir = null; tVel = 0; tLastT = e.timeStamp;
+    cancelMomentum();
+  }, { passive: true });
+  gimgs.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    const dx = t.clientX - tx, dy = t.clientY - ty;
+    if (tDir === null) {
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) tDir = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      else return;
+    }
+    if (tDir === 'x') {
+      e.preventDefault();                            // 가로일 때만 페이지 스크롤 막고 슬라이드
+      gimgs.style.scrollSnapType = 'none';
+      gimgs.scrollLeft = tScroll - dx;
+      tVel = (t.clientX - tLastX) / ((e.timeStamp - tLastT) || 16);
+      tLastX = t.clientX; tLastT = e.timeStamp;
+    }
+    /* tDir === 'y' → 아무것도 안 함(브라우저가 페이지 세로 스크롤 수행) */
+  }, { passive: false });
+  gimgs.addEventListener('touchend', () => {
+    if (tDir === 'x') momentum(tVel * 16);
+    tDir = null;
+  });
 }
 
 // ===== Cinematic: 유튜브 영상 (스크롤로 재생 / 22초부터 시작·반복) =====
@@ -205,7 +240,7 @@ if (ytHost) {
   document.querySelectorAll('.gallery .g-cell.reveal').forEach((c, i) => {
     c.style.setProperty('--reveal-order', i);
   });
-  const targets = document.querySelectorAll('.reveal-group, .reveal');
+  const targets = document.querySelectorAll('.reveal-group, .reveal, .cine-reveal');
   if (!('IntersectionObserver' in window)) {           // 미지원 브라우저는 그냥 모두 표시
     targets.forEach((t) => t.classList.add('is-shown'));
     return;

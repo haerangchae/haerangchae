@@ -1,8 +1,9 @@
 /* ===== Fonts ===== */
 @font-face{
   font-family:'LeeSeoyun';
-  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff');
-  font-weight:normal; font-display:swap;
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff'),
+       url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2202-2@1.0/LeeSeoyun.woff') format('woff');
+  font-weight:normal; font-style:normal; font-display:swap;
 }
 
 /* ===== Tokens (Figma 정확 값) ===== */
@@ -166,12 +167,20 @@ h1,h2,h3{font-weight:400;}
 .see-more{display:inline-block;align-self:flex-start;font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--ink);border-bottom:1.5px solid var(--ink);padding-bottom:4px;}
 
 /* ===== Cinematic ===== */
-.cinematic{position:relative;width:100%;height:clamp(420px,42.66vw,820px);overflow:hidden;background:#000;}
-/* 유튜브 16:9 영상을 와이드 영역에 꽉 채움(넘치는 부분은 잘림 = cover) */
+.cinematic{position:relative;width:100%;--cine-h:clamp(420px,42.66vw,820px);height:var(--cine-h);overflow:hidden;background:#000;}
+/* 패럴랙스: 가운데 1:1(정사각형)에서 좌우로 쫙 펼쳐지며 와이드로 열림 */
+.cine-reveal{clip-path:inset(0 calc(50% - var(--cine-h) / 2) 0 calc(50% - var(--cine-h) / 2));transition:clip-path 1.05s cubic-bezier(.22,.61,.36,1);will-change:clip-path;}
+.cine-reveal.is-shown{clip-path:inset(0 0 0 0);}
+@media (prefers-reduced-motion: reduce){.cine-reveal{clip-path:none;}}
+/* 유튜브 UI(로고·제목·컨트롤)는 영상 가장자리에 붙어 나오므로,
+   영상을 화면보다 크게(130%) 키워 가장자리를 잘라내 '영상만' 보이게 함.
+   pointer-events:none → 마우스 올려도 컨트롤 안 뜸. */
 .cinematic iframe,#yt-player{
   position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:100%;height:56.25vw;border:0;pointer-events:none;
+  width:130%;aspect-ratio:16 / 9;height:auto;border:0;pointer-events:none;
 }
+/* 우리가 넣은 재생/일시정지 버튼도 숨김(영상만 노출). 다시 켜려면 이 줄 삭제 */
+.cinematic .play-btn{display:none;}
 .play-btn .ico-play{display:none;margin-left:2px;}
 .play-btn.is-paused .ico-pause{display:none;}
 .play-btn.is-paused .ico-play{display:block;}
@@ -276,9 +285,12 @@ h1,h2,h3{font-weight:400;}
   .gallery{padding:24px 24px 56px;}
   .g-stack{display:flex;flex-direction:column;gap:28px;}
   .g-imgs{
-    display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
+    display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;
     scroll-behavior:auto;margin-right:-24px;padding-right:24px;cursor:grab;user-select:none;
     scrollbar-width:none;-ms-overflow-style:none;
+    /* 세로 swipe는 브라우저가 페이지 스크롤로 처리, 가로 슬라이드는 JS가 처리(끊김 방지) */
+    touch-action:pan-y;
+    overscroll-behavior-x:contain;
   }
   .g-imgs::-webkit-scrollbar{display:none;}
   .g-imgs.dragging{cursor:grabbing;}
@@ -291,9 +303,10 @@ h1,h2,h3{font-weight:400;}
   .spec{gap:13px;margin-bottom:24px;}
   .spec li{font-size:15px;}
 
-  /* --- Cinematic (모바일은 16:9로 깔끔하게) --- */
-  .cinematic{height:auto;aspect-ratio:16 / 9;}
-  .cinematic iframe,#yt-player{top:0;left:0;transform:none;width:100%;height:100%;}
+  /* --- Cinematic (모바일: 360:480 = 3:4 세로 비율, 좌우는 잘려서 채움) --- */
+  .cinematic{--cine-h:133.333vw;height:var(--cine-h);}     /* 폭 360 기준 높이 480 비율 */
+  .cinematic iframe,#yt-player{width:auto;height:140%;}    /* 세로 기준 cover(좌우 잘림) */
+  .cine-reveal{clip-path:none;}                            /* 세로 영역이라 좌우 펼침 효과는 생략 */
 
   /* --- Around: 세로 스택 + 가로 이미지 --- */
   .around{padding:62px 24px 64px;}
