@@ -265,6 +265,16 @@ h1,h2,h3{font-weight:400;}
 .loc-label{display:block;font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--ink-faint);margin-bottom:4px;}
 .loc-row p{font-size:18px;font-weight:300;line-height:1.6;color:var(--ink);}
 .loc-row a:hover{color:var(--accent);}
+/* 주소 복사 버튼 */
+.loc-addr{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.copy-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;flex:0 0 auto;
+  border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink-soft);cursor:pointer;transition:all .2s;}
+.copy-btn:hover{color:var(--accent);border-color:var(--accent);}
+.copy-btn svg{width:15px;height:15px;}
+.copy-btn .ic-done{display:none;}
+.copy-btn.copied{color:#3a8a4a;border-color:#3a8a4a;}
+.copy-btn.copied .ic-copy{display:none;}
+.copy-btn.copied .ic-done{display:block;}
 .btn-reserve{
   display:inline-block;margin-top:14px;background:var(--accent);color:#fff;
   font-size:14px;font-weight:600;letter-spacing:.14em;padding:16px 48px;
@@ -367,7 +377,7 @@ h1,h2,h3{font-weight:400;}
   .location{position:relative;height:auto;display:block;}
   .map-bg{position:absolute;inset:0;height:auto;}
   .map-pin{top:115px;transform:translate(-50%,-100%);}
-  .location-inner{position:relative;z-index:2;max-width:none;padding:230px 16px 36px;}
+  .location-inner{position:relative;z-index:2;max-width:none;padding:320px 16px 36px;}  /* 지도 영역 더 크게(답답함 해소) */
   .location-card{width:100%;max-width:none;border-radius:16px;box-shadow:0 18px 44px rgba(30,25,20,.28);padding:32px 24px;}
   .location-card h2{font-size:24px;}
   .btn-reserve{display:block;width:100%;text-align:center;}
