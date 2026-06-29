@@ -1,56 +1,53 @@
 // ===========================================================
-//  네이버 지도 설정 — 여기 두 줄만 채우면 실제 지도가 뜹니다
+//  네이버 지도
 // ===========================================================
-//  1) 네이버 클라우드 플랫폼 > Maps > Application 등록 후 받은 Client ID
-//     (등록 시 "Web 서비스 URL"에 http://localhost:8123 과 실제 도메인을 추가하세요)
 const NAVER_MAP_CLIENT_ID = "uf90x9mu8h";  // 네이버 클라우드 Maps Client ID
-//  2) 해랑채 정확한 위도/경도 (네이버 지도에서 핀 우클릭 → 좌표로 확인해 교체)
-const HAERANGCHAE_LATLNG = { lat: 37.45249, lng: 129.17402 }; // 대략값(증산해변 인근)
-//  PC는 카드가 왼쪽에 있으므로 지도 중심을 살짝 서쪽으로 옮겨 핀이 오른쪽에 보이게 함(값 클수록 더 오른쪽)
-const MAP_DESKTOP_SHIFT_LNG = 0.0072;
+const HAERANGCHAE_LATLNG = { lat: 37.45249, lng: 129.17402 }; // 핀 좌표(대략값 — 정확히 조정 가능)
+const MAP_DESKTOP_SHIFT_LNG = 0.0072;      // PC에서 핀을 오른쪽으로 미는 정도(카드가 왼쪽이라)
+let naverInitDone = false;
 
 function initNaverMap() {
+  if (naverInitDone) return;
   const el = document.getElementById('naver-map');
-  if (!el || !window.naver || !naver.maps || !naver.maps.Map) return;
-  // ★ 지도 생성 전에 먼저 표시해야 함(숨김(0×0) 상태로 생성하면 타일이 안 그려져 빈 화면이 됨)
-  el.style.display = 'block';
+  if (!el || !window.naver || !window.naver.maps || !window.naver.maps.Map) return;
+  naverInitDone = true;
+
+  el.style.display = 'block';                       // 숨김 상태로 생성하면 빈 지도 → 먼저 표시
   const pin = document.querySelector('.map-pin');
-  if (pin) pin.style.display = 'none';              // 자리표시자 숨김
+  if (pin) pin.style.display = 'none';
 
   const pos = new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng);
-  const isDesktop = window.innerWidth > 768;        // PC에서만 중심을 오른쪽으로 치우치게
-  const center = isDesktop
+  const center = (window.innerWidth > 768)
     ? new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng - MAP_DESKTOP_SHIFT_LNG)
     : pos;
-  const map = new naver.maps.Map(el, {
-    center, zoom: 16, scrollWheel: false,
-    mapTypeControl: false, logoControl: true, mapDataControl: false,
-  });
-  new naver.maps.Marker({ position: pos, map, title: '삼척바다 해랑채' });
-  // 안전장치: 레이아웃이 잡힌 뒤 크기 재계산(빈 지도 방지)
-  setTimeout(function () { naver.maps.Event.trigger(map, 'resize'); map.setCenter(center); }, 200);
+  const map = new naver.maps.Map(el, { center: center, zoom: 16, scrollWheel: false });
+  new naver.maps.Marker({ position: pos, map: map, title: '삼척바다 해랑채' });
+  // 레이아웃 확정 후 크기 재계산(빈 지도 방지)
+  setTimeout(function () { naver.maps.Event.trigger(map, 'resize'); map.setCenter(center); }, 300);
 }
+window.initNaverMap = initNaverMap;
 
-// 인증 실패(미등록 도메인 등) 시 빨간 에러 대신 자리표시자 지도로 폴백
-function naverShowPlaceholder() {
-  const el = document.getElementById('naver-map');
-  if (el) el.style.display = 'none';
-  const pin = document.querySelector('.map-pin');
-  if (pin) pin.style.display = '';
-}
+// 인증 실패 시 빨간 에러 대신 자리표시자로 폴백
 window.navermap_authFailure = function () {
-  console.warn('네이버 지도 인증 실패 — NCP 콘솔 "Web 서비스 URL"에 현재 도메인 등록 여부를 확인하세요.');
-  naverShowPlaceholder();
+  console.warn('네이버 지도 인증 실패 — Web 서비스 URL 등록을 확인하세요.');
+  const el = document.getElementById('naver-map'); if (el) el.style.display = 'none';
+  const pin = document.querySelector('.map-pin'); if (pin) pin.style.display = '';
 };
-
-window.initNaverMap = initNaverMap;   // 콜백에서 호출되도록 전역 등록
 
 if (NAVER_MAP_CLIENT_ID) {
   const s = document.createElement('script');
-  // 공식 권장 방식: &callback= 으로 라이브러리가 완전히 준비된 뒤 initNaverMap 호출(타이밍 문제 방지)
-  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID + '&callback=initNaverMap';
-  s.async = true;
-  s.onerror = function () { console.warn('네이버 지도 스크립트 로드 실패'); naverShowPlaceholder(); };
+  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID;
+  // 라이브러리가 naver.maps.Map 을 비동기로 준비할 수 있어, 준비될 때까지 폴링 후 생성
+  s.onload = function () {
+    let tries = 0;
+    (function poll() {
+      if (naverInitDone) return;
+      if (window.naver && window.naver.maps && window.naver.maps.Map) { initNaverMap(); return; }
+      if (++tries > 50) { console.warn('naver.maps 로드 대기 시간 초과'); return; }
+      setTimeout(poll, 200);
+    })();
+  };
+  s.onerror = function () { console.warn('네이버 지도 스크립트 로드 실패'); window.navermap_authFailure(); };
   document.head.appendChild(s);
 }
 
