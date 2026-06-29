@@ -28,19 +28,22 @@ function initNaverMap() {
 }
 
 // 인증 실패(미등록 도메인 등) 시 빨간 에러 대신 자리표시자 지도로 폴백
-window.navermap_authFailure = function () {
+function naverShowPlaceholder() {
   const el = document.getElementById('naver-map');
   if (el) el.style.display = 'none';
   const pin = document.querySelector('.map-pin');
   if (pin) pin.style.display = '';
-  console.warn('네이버 지도 인증 실패 — NCP 콘솔의 "Web 서비스 URL"에 현재 도메인을 등록하세요.');
+}
+window.navermap_authFailure = function () {
+  console.warn('네이버 지도 인증 실패 — NCP 콘솔 "Web 서비스 URL"에 현재 도메인 등록 여부를 확인하세요.');
+  naverShowPlaceholder();
 };
 
 if (NAVER_MAP_CLIENT_ID) {
   const s = document.createElement('script');
-  s.src = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${NAVER_MAP_CLIENT_ID}`;
+  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID;
   s.onload = initNaverMap;
-  s.onerror = () => console.warn('네이버 지도 스크립트 로드 실패 — Client ID/도메인 등록을 확인하세요.');
+  s.onerror = function () { console.warn('네이버 지도 스크립트 로드 실패'); naverShowPlaceholder(); };
   document.head.appendChild(s);
 }
 
