@@ -387,3 +387,21 @@ if (bgmHost) {
   }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
   targets.forEach((t) => io.observe(t));
 })();
+
+// ===== 주소 복사 버튼 =====
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); } catch (_) {}
+  document.body.removeChild(ta);
+}
+document.querySelectorAll('.copy-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    const text = btn.dataset.copy || '';
+    const done = function () { btn.classList.add('copied'); setTimeout(function () { btn.classList.remove('copied'); }, 1500); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () { fallbackCopy(text); done(); });
+    } else { fallbackCopy(text); done(); }
+  });
+});
