@@ -2,19 +2,26 @@
 //  네이버 지도
 // ===========================================================
 const NAVER_MAP_CLIENT_ID = "uf90x9mu8h";  // 네이버 클라우드 Maps Client ID
-const HAERANGCHAE_ADDR = '강원특별자치도 삼척시 수로부인길 350';  // 이 주소를 지오코딩해서 핀을 찍음
-const HAERANGCHAE_LATLNG = { lat: 37.469395, lng: 129.16459 }; // 수로부인길 350 지오코딩 좌표(실패 시 폴백)
+const HAERANGCHAE_LATLNG = { lat: 37.4741751965765, lng: 129.160573217769 }; // 해랑채 정확 좌표
+const HAERANGCHAE_NAME = '삼척바다 해랑채';
 const MAP_DESKTOP_SHIFT_LNG = 0.0072;      // PC에서 핀을 오른쪽으로 미는 정도(카드가 왼쪽이라)
 let naverInitDone = false;
 
-// 지정 좌표에 마커 + (PC는 살짝 오른쪽으로 치우친) 중심 설정
-function placeHaerangchae(map, lat, lng) {
-  const pos = new naver.maps.LatLng(lat, lng);
-  const center = (window.innerWidth > 768)
-    ? new naver.maps.LatLng(lat, lng - MAP_DESKTOP_SHIFT_LNG)
-    : pos;
-  map.setCenter(center);
-  new naver.maps.Marker({ position: pos, map: map, title: '삼척바다 해랑채' });
+// 커스텀 핀(map.png) + 이름 라벨 마커
+function makeHaerangMarker(map, pos) {
+  const W = 36, H = 46;   // map.png(92x118) 비율 유지하며 축소 표시
+  const content =
+    '<div style="position:relative;width:' + W + 'px;">' +
+      '<img src="images/map.png" alt="' + HAERANGCHAE_NAME + '" style="width:' + W + 'px;height:' + H + 'px;display:block;">' +
+      '<span style="position:absolute;top:' + (H + 4) + 'px;left:50%;transform:translateX(-50%);white-space:nowrap;' +
+        'font-family:\'LeeSeoyun\',\'Apple SD Gothic Neo\',sans-serif;font-size:13px;color:#2b2926;' +
+        'background:rgba(255,255,255,.92);padding:3px 10px;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.22);">' +
+        HAERANGCHAE_NAME + '</span>' +
+    '</div>';
+  return new naver.maps.Marker({
+    position: pos, map: map, title: HAERANGCHAE_NAME,
+    icon: { content: content, size: new naver.maps.Size(W, H), anchor: new naver.maps.Point(W / 2, H) }
+  });
 }
 
 function initNaverMap() {
@@ -24,31 +31,20 @@ function initNaverMap() {
   naverInitDone = true;
 
   el.style.display = 'block';                       // 숨김 상태로 생성하면 빈 지도 → 먼저 표시
-  const pin = document.querySelector('.map-pin');
-  if (pin) pin.style.display = 'none';
+  const placeholderPin = document.querySelector('.map-pin');
+  if (placeholderPin) placeholderPin.style.display = 'none';
 
+  const pos = new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng);
+  const center = (window.innerWidth > 768)
+    ? new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng - MAP_DESKTOP_SHIFT_LNG)
+    : pos;
   const map = new naver.maps.Map(el, {
-    center: new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng),
+    center: center,
     zoom: 16,
     scrollWheel: false,                              // 휠 줌 끔(페이지 스크롤 우선)
     draggable: window.innerWidth > 768,              // PC만 드래그(모바일은 페이지 스크롤 방해 방지)
   });
-
-  // 주소 → 정확한 좌표(지오코딩). 실패하면 대략 좌표로
-  function useFallback() { placeHaerangchae(map, HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng); }
-  if (naver.maps.Service && naver.maps.Service.geocode) {
-    naver.maps.Service.geocode({ query: HAERANGCHAE_ADDR }, function (status, response) {
-      if (status === naver.maps.Service.Status.OK &&
-          response.v2 && response.v2.addresses && response.v2.addresses.length) {
-        const a = response.v2.addresses[0];
-        placeHaerangchae(map, parseFloat(a.y), parseFloat(a.x));   // y=위도, x=경도
-      } else {
-        useFallback();
-      }
-    });
-  } else {
-    useFallback();
-  }
+  makeHaerangMarker(map, pos);
 
   setTimeout(function () { naver.maps.Event.trigger(map, 'resize'); }, 300);  // 빈 지도 방지
 }
@@ -63,8 +59,7 @@ window.navermap_authFailure = function () {
 
 if (NAVER_MAP_CLIENT_ID) {
   const s = document.createElement('script');
-  // geocoder 서브모듈 포함(주소→좌표 변환용)
-  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID + '&submodules=geocoder';
+  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID;
   // 라이브러리가 naver.maps.Map 을 비동기로 준비할 수 있어, 준비될 때까지 폴링 후 생성
   s.onload = function () {
     let tries = 0;
