@@ -246,7 +246,7 @@ h1,h2,h3{font-weight:400;}
     radial-gradient(circle at 78% 38%,#cfe3ec,transparent 42%),
     linear-gradient(135deg,#eef1ee,#e6ebe6 60%,#dfe6e4);
 }
-#naver-map{position:absolute;inset:0;z-index:1;display:none;}  /* 키 입력 시 JS가 표시 */
+#naver-map{position:absolute;inset:0;width:100%;height:100%;z-index:1;display:none;}  /* JS가 표시 */
 .map-pin{
   position:absolute;left:50%;top:50%;transform:translate(-50%,-100%);
   display:flex;flex-direction:column;align-items:center;color:var(--accent);
@@ -254,6 +254,11 @@ h1,h2,h3{font-weight:400;}
 .map-pin svg{width:42px;height:42px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.25));}
 .map-pin span{margin-top:2px;font-family:var(--kr-head);font-size:14px;color:#3c3a38;background:rgba(255,255,255,.85);padding:2px 10px;border-radius:10px;}
 .location-inner{position:relative;z-index:2;width:100%;max-width:var(--maxw);margin:0 auto;padding:0 24px;}
+/* PC: 카드 밖 빈 영역은 클릭 통과시켜 지도 드래그 허용, 카드만 클릭 받음 */
+@media (min-width:769px){
+  .location-inner{pointer-events:none;}
+  .location-card{pointer-events:auto;}
+}
 .location-card{background:#fff;width:480px;max-width:100%;padding:48px;border-radius:8px;box-shadow:0 24px 60px rgba(40,30,25,.18);}
 .location-card h2{font-family:var(--kr-head);font-size:32px;letter-spacing:.04em;color:var(--ink);margin-bottom:26px;}
 .loc-row{margin-bottom:22px;}

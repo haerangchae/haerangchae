@@ -2,9 +2,20 @@
 //  네이버 지도
 // ===========================================================
 const NAVER_MAP_CLIENT_ID = "uf90x9mu8h";  // 네이버 클라우드 Maps Client ID
-const HAERANGCHAE_LATLNG = { lat: 37.45249, lng: 129.17402 }; // 핀 좌표(대략값 — 정확히 조정 가능)
+const HAERANGCHAE_ADDR = '강원특별자치도 삼척시 수로부인길 350';  // 이 주소를 지오코딩해서 핀을 찍음
+const HAERANGCHAE_LATLNG = { lat: 37.469395, lng: 129.16459 }; // 수로부인길 350 지오코딩 좌표(실패 시 폴백)
 const MAP_DESKTOP_SHIFT_LNG = 0.0072;      // PC에서 핀을 오른쪽으로 미는 정도(카드가 왼쪽이라)
 let naverInitDone = false;
+
+// 지정 좌표에 마커 + (PC는 살짝 오른쪽으로 치우친) 중심 설정
+function placeHaerangchae(map, lat, lng) {
+  const pos = new naver.maps.LatLng(lat, lng);
+  const center = (window.innerWidth > 768)
+    ? new naver.maps.LatLng(lat, lng - MAP_DESKTOP_SHIFT_LNG)
+    : pos;
+  map.setCenter(center);
+  new naver.maps.Marker({ position: pos, map: map, title: '삼척바다 해랑채' });
+}
 
 function initNaverMap() {
   if (naverInitDone) return;
@@ -16,14 +27,30 @@ function initNaverMap() {
   const pin = document.querySelector('.map-pin');
   if (pin) pin.style.display = 'none';
 
-  const pos = new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng);
-  const center = (window.innerWidth > 768)
-    ? new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng - MAP_DESKTOP_SHIFT_LNG)
-    : pos;
-  const map = new naver.maps.Map(el, { center: center, zoom: 16, scrollWheel: false });
-  new naver.maps.Marker({ position: pos, map: map, title: '삼척바다 해랑채' });
-  // 레이아웃 확정 후 크기 재계산(빈 지도 방지)
-  setTimeout(function () { naver.maps.Event.trigger(map, 'resize'); map.setCenter(center); }, 300);
+  const map = new naver.maps.Map(el, {
+    center: new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng),
+    zoom: 16,
+    scrollWheel: false,                              // 휠 줌 끔(페이지 스크롤 우선)
+    draggable: window.innerWidth > 768,              // PC만 드래그(모바일은 페이지 스크롤 방해 방지)
+  });
+
+  // 주소 → 정확한 좌표(지오코딩). 실패하면 대략 좌표로
+  function useFallback() { placeHaerangchae(map, HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng); }
+  if (naver.maps.Service && naver.maps.Service.geocode) {
+    naver.maps.Service.geocode({ query: HAERANGCHAE_ADDR }, function (status, response) {
+      if (status === naver.maps.Service.Status.OK &&
+          response.v2 && response.v2.addresses && response.v2.addresses.length) {
+        const a = response.v2.addresses[0];
+        placeHaerangchae(map, parseFloat(a.y), parseFloat(a.x));   // y=위도, x=경도
+      } else {
+        useFallback();
+      }
+    });
+  } else {
+    useFallback();
+  }
+
+  setTimeout(function () { naver.maps.Event.trigger(map, 'resize'); }, 300);  // 빈 지도 방지
 }
 window.initNaverMap = initNaverMap;
 
@@ -36,7 +63,8 @@ window.navermap_authFailure = function () {
 
 if (NAVER_MAP_CLIENT_ID) {
   const s = document.createElement('script');
-  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID;
+  // geocoder 서브모듈 포함(주소→좌표 변환용)
+  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID + '&submodules=geocoder';
   // 라이브러리가 naver.maps.Map 을 비동기로 준비할 수 있어, 준비될 때까지 폴링 후 생성
   s.onload = function () {
     let tries = 0;
