@@ -5,6 +5,7 @@ const NAVER_MAP_CLIENT_ID = "uf90x9mu8h";  // 네이버 클라우드 Maps Client
 const HAERANGCHAE_LATLNG = { lat: 37.4741751965765, lng: 129.160573217769 }; // 해랑채 정확 좌표
 const HAERANGCHAE_NAME = '삼척바다 해랑채';
 const MAP_DESKTOP_SHIFT_LNG = 0.0015;      // PC에서 핀을 오른쪽으로 미는 정도(줌18 기준, 카드가 왼쪽이라)
+const MAP_MOBILE_SHIFT_LAT  = 0.0008;      // 모바일에서 핀을 위로 올리는 정도(카드가 아래를 덮어서)
 let naverInitDone = false;
 
 // 커스텀 핀(인라인 SVG, 메인컬러) + 이름 라벨 마커
@@ -42,7 +43,7 @@ function initNaverMap() {
   const pos = new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng);
   const center = (window.innerWidth > 768)
     ? new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng - MAP_DESKTOP_SHIFT_LNG)
-    : pos;
+    : new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat - MAP_MOBILE_SHIFT_LAT, HAERANGCHAE_LATLNG.lng);
   const map = new naver.maps.Map(el, {
     center: center,
     zoom: 18,                                        // 더블클릭 2번(≈30m) 수준
