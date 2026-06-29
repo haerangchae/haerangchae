@@ -4,16 +4,21 @@
 const NAVER_MAP_CLIENT_ID = "uf90x9mu8h";  // 네이버 클라우드 Maps Client ID
 const HAERANGCHAE_LATLNG = { lat: 37.4741751965765, lng: 129.160573217769 }; // 해랑채 정확 좌표
 const HAERANGCHAE_NAME = '삼척바다 해랑채';
-const MAP_DESKTOP_SHIFT_LNG = 0.0072;      // PC에서 핀을 오른쪽으로 미는 정도(카드가 왼쪽이라)
+const MAP_DESKTOP_SHIFT_LNG = 0.0015;      // PC에서 핀을 오른쪽으로 미는 정도(줌18 기준, 카드가 왼쪽이라)
 let naverInitDone = false;
 
-// 커스텀 핀(map.png) + 이름 라벨 마커
+// 커스텀 핀(인라인 SVG, 메인컬러) + 이름 라벨 마커
 function makeHaerangMarker(map, pos) {
-  const W = 36, H = 46;   // map.png(92x118) 비율 유지하며 축소 표시
+  const W = 33, H = 44;   // 핀 크기(비율 3:4)
+  const svg =
+    '<svg width="' + W + '" height="' + H + '" viewBox="0 0 24 32" xmlns="http://www.w3.org/2000/svg" style="display:block;filter:drop-shadow(0 2px 3px rgba(0,0,0,.3));">' +
+      '<path d="M12 0C5.37 0 0 5.37 0 12c0 8.4 12 20 12 20s12-11.6 12-20C24 5.37 18.63 0 12 0z" fill="#804b4b"/>' +
+      '<circle cx="12" cy="12" r="4.6" fill="#ffffff"/>' +
+    '</svg>';
   const content =
     '<div style="position:relative;width:' + W + 'px;">' +
-      '<img src="images/map.png" alt="' + HAERANGCHAE_NAME + '" style="width:' + W + 'px;height:' + H + 'px;display:block;">' +
-      '<span style="position:absolute;top:' + (H + 4) + 'px;left:50%;transform:translateX(-50%);white-space:nowrap;' +
+      svg +
+      '<span style="position:absolute;top:' + (H + 3) + 'px;left:50%;transform:translateX(-50%);white-space:nowrap;' +
         'font-family:\'LeeSeoyun\',\'Apple SD Gothic Neo\',sans-serif;font-size:13px;color:#2b2926;' +
         'background:rgba(255,255,255,.92);padding:3px 10px;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,.22);">' +
         HAERANGCHAE_NAME + '</span>' +
@@ -40,7 +45,7 @@ function initNaverMap() {
     : pos;
   const map = new naver.maps.Map(el, {
     center: center,
-    zoom: 16,
+    zoom: 18,                                        // 더블클릭 2번(≈30m) 수준
     scrollWheel: false,                              // 휠 줌 끔(페이지 스크롤 우선)
     draggable: window.innerWidth > 768,              // PC만 드래그(모바일은 페이지 스크롤 방해 방지)
   });
