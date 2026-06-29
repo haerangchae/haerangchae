@@ -3,16 +3,22 @@
 // ===========================================================
 //  1) 네이버 클라우드 플랫폼 > Maps > Application 등록 후 받은 Client ID
 //     (등록 시 "Web 서비스 URL"에 http://localhost:8123 과 실제 도메인을 추가하세요)
-const NAVER_MAP_CLIENT_ID = "";           // 예: "abcd1234ef"
+const NAVER_MAP_CLIENT_ID = "uf90x9mu8h";  // 네이버 클라우드 Maps Client ID
 //  2) 해랑채 정확한 위도/경도 (네이버 지도에서 핀 우클릭 → 좌표로 확인해 교체)
 const HAERANGCHAE_LATLNG = { lat: 37.45249, lng: 129.17402 }; // 대략값(증산해변 인근)
+//  PC는 카드가 왼쪽에 있으므로 지도 중심을 살짝 서쪽으로 옮겨 핀이 오른쪽에 보이게 함(값 클수록 더 오른쪽)
+const MAP_DESKTOP_SHIFT_LNG = 0.0072;
 
 function initNaverMap() {
   const el = document.getElementById('naver-map');
   if (!el || !window.naver || !naver.maps) return;
   const pos = new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng);
+  const isDesktop = window.innerWidth > 768;        // PC에서만 중심을 오른쪽으로 치우치게
+  const center = isDesktop
+    ? new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng - MAP_DESKTOP_SHIFT_LNG)
+    : pos;
   const map = new naver.maps.Map(el, {
-    center: pos, zoom: 16, scrollWheel: false,
+    center, zoom: 16, scrollWheel: false,
     mapTypeControl: false, logoControl: true, mapDataControl: false,
   });
   new naver.maps.Marker({ position: pos, map, title: '삼척바다 해랑채' });
@@ -20,6 +26,15 @@ function initNaverMap() {
   const pin = document.querySelector('.map-pin');
   if (pin) pin.style.display = 'none';              // 자리표시자 숨김
 }
+
+// 인증 실패(미등록 도메인 등) 시 빨간 에러 대신 자리표시자 지도로 폴백
+window.navermap_authFailure = function () {
+  const el = document.getElementById('naver-map');
+  if (el) el.style.display = 'none';
+  const pin = document.querySelector('.map-pin');
+  if (pin) pin.style.display = '';
+  console.warn('네이버 지도 인증 실패 — NCP 콘솔의 "Web 서비스 URL"에 현재 도메인을 등록하세요.');
+};
 
 if (NAVER_MAP_CLIENT_ID) {
   const s = document.createElement('script');
@@ -195,6 +210,16 @@ function seekToStartIfNeeded() {
   }
 }
 
+// 가능한 최고 화질로 힌트(유튜브가 무시할 수도 있음 — 플레이어가 클수록 효과적)
+function forceHQ(p) {
+  try {
+    const levels = p.getAvailableQualityLevels && p.getAvailableQualityLevels();
+    const best = (levels && levels.length) ? levels[0] : 'highres';  // levels[0]가 최고 화질
+    if (p.setPlaybackQuality) p.setPlaybackQuality(best);
+    if (p.setPlaybackQualityRange) p.setPlaybackQualityRange(best, best);
+  } catch (_) {}
+}
+
 // 유튜브 API 준비되면 호출됨
 window.onYouTubeIframeAPIReady = function () {
   if (ytHost) {
@@ -204,11 +229,12 @@ window.onYouTubeIframeAPIReady = function () {
                     modestbranding: 1, playsinline: 1, disablekb: 1, fs: 0 },
       events: {
         onReady: (e) => {
-          ytReady = true; e.target.mute();
+          ytReady = true; e.target.mute(); forceHQ(e.target);
           if (ytInView) { seekToStartIfNeeded(); e.target.playVideo(); }
         },
         onStateChange: (e) => {
           if (e.data === YT.PlayerState.ENDED) { ytPlayer.seekTo(VIDEO_START, true); ytPlayer.playVideo(); }
+          if (e.data === YT.PlayerState.PLAYING) forceHQ(ytPlayer);   // 재생 시작 시 최고 화질 힌트
           if (play) {
             if (e.data === YT.PlayerState.PLAYING) play.classList.remove('is-paused');
             else if (e.data === YT.PlayerState.PAUSED) play.classList.add('is-paused');
@@ -223,7 +249,10 @@ window.onYouTubeIframeAPIReady = function () {
       playerVars: { autoplay: 0, controls: 0, loop: 1, playlist: BGM_VIDEO_ID, rel: 0,
                     playsinline: 1, disablekb: 1, fs: 0 },
       events: {
-        onReady: () => { bgmReady = true; bgmPlayer.setVolume(BGM_VOLUME); if (bgmWanted && bgmGestureDone) startBgm(); },
+        onReady: () => {
+          bgmReady = true; bgmPlayer.setVolume(BGM_VOLUME);
+          if (bgmWanted) startBgm();   // 자동재생 시도(허용되는 PC면 바로 재생, 막히면 첫 상호작용 때 재생)
+        },
         onStateChange: updateBgmBtn
       }
     });
@@ -293,8 +322,10 @@ if (bgmHost) {
     bgmBtn.addEventListener('click', () => {
       bgmGestureDone = true;
       if (!bgmReady) { bgmWanted = true; return; }          // 준비되면 onReady에서 재생
-      if (bgmPlayer.getPlayerState() === YT.PlayerState.PLAYING) { bgmPlayer.pauseVideo(); bgmWanted = false; }
-      else { bgmWanted = true; startBgm(); }
+      if (bgmPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+        bgmPlayer.pauseVideo(); bgmWanted = false;
+        bgmBtn.classList.add('is-hidden');   // 사용자가 직접 끄면 버튼 숨김
+      } else { bgmWanted = true; startBgm(); }
       updateBgmBtn();
     });
   }
