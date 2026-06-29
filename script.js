@@ -11,7 +11,12 @@ const MAP_DESKTOP_SHIFT_LNG = 0.0072;
 
 function initNaverMap() {
   const el = document.getElementById('naver-map');
-  if (!el || !window.naver || !naver.maps) return;
+  if (!el || !window.naver || !naver.maps || !naver.maps.Map) return;
+  // ★ 지도 생성 전에 먼저 표시해야 함(숨김(0×0) 상태로 생성하면 타일이 안 그려져 빈 화면이 됨)
+  el.style.display = 'block';
+  const pin = document.querySelector('.map-pin');
+  if (pin) pin.style.display = 'none';              // 자리표시자 숨김
+
   const pos = new naver.maps.LatLng(HAERANGCHAE_LATLNG.lat, HAERANGCHAE_LATLNG.lng);
   const isDesktop = window.innerWidth > 768;        // PC에서만 중심을 오른쪽으로 치우치게
   const center = isDesktop
@@ -22,9 +27,8 @@ function initNaverMap() {
     mapTypeControl: false, logoControl: true, mapDataControl: false,
   });
   new naver.maps.Marker({ position: pos, map, title: '삼척바다 해랑채' });
-  el.style.display = 'block';                       // 지도 노출
-  const pin = document.querySelector('.map-pin');
-  if (pin) pin.style.display = 'none';              // 자리표시자 숨김
+  // 안전장치: 레이아웃이 잡힌 뒤 크기 재계산(빈 지도 방지)
+  setTimeout(function () { naver.maps.Event.trigger(map, 'resize'); map.setCenter(center); }, 200);
 }
 
 // 인증 실패(미등록 도메인 등) 시 빨간 에러 대신 자리표시자 지도로 폴백
@@ -39,10 +43,13 @@ window.navermap_authFailure = function () {
   naverShowPlaceholder();
 };
 
+window.initNaverMap = initNaverMap;   // 콜백에서 호출되도록 전역 등록
+
 if (NAVER_MAP_CLIENT_ID) {
   const s = document.createElement('script');
-  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID;
-  s.onload = initNaverMap;
+  // 공식 권장 방식: &callback= 으로 라이브러리가 완전히 준비된 뒤 initNaverMap 호출(타이밍 문제 방지)
+  s.src = 'https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=' + NAVER_MAP_CLIENT_ID + '&callback=initNaverMap';
+  s.async = true;
   s.onerror = function () { console.warn('네이버 지도 스크립트 로드 실패'); naverShowPlaceholder(); };
   document.head.appendChild(s);
 }
