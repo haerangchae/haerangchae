@@ -405,3 +405,49 @@ document.querySelectorAll('.copy-btn').forEach(function (btn) {
     } else { fallbackCopy(text); done(); }
   });
 });
+
+// ===== 페이지 라우팅 (새로고침 없이 뷰 전환 → 배경음악 유지) =====
+(function () {
+  const homeView = document.getElementById('top');
+  const galleryView = document.getElementById('view-gallery');
+  if (!galleryView) return;
+  function route() {
+    const isStay = location.hash === '#stay';
+    galleryView.hidden = !isStay;
+    if (homeView) homeView.hidden = isStay;
+    document.body.classList.toggle('route-gallery', isStay);
+    if (isStay) window.scrollTo(0, 0);
+    if (typeof updateParallax === 'function') requestAnimationFrame(updateParallax);
+  }
+  window.addEventListener('hashchange', route);
+  route();   // 최초 진입 시 해시 반영
+})();
+
+// 임시 예약 버튼(href="#")은 동작·이동 없음
+document.querySelectorAll('a[href="#"]').forEach(function (a) {
+  a.addEventListener('click', function (e) { e.preventDefault(); });
+});
+
+// ===== 주요 비주얼 패럴랙스 (은은하게, 모바일 비활성) =====
+const parImgs = [].slice.call(document.querySelectorAll('[data-parallax] > img'));
+let parTicking = false;
+function updateParallax() {
+  parTicking = false;
+  if (window.innerWidth <= 768 || !parImgs.length) return;   // 모바일은 성능 위해 비활성
+  const vh = window.innerHeight;
+  for (let i = 0; i < parImgs.length; i++) {
+    const img = parImgs[i];
+    const r = img.parentElement.getBoundingClientRect();
+    if (r.height === 0 || r.bottom < -80 || r.top > vh + 80) continue;
+    let p = (r.top + r.height / 2 - vh / 2) / vh;   // 화면 중앙 기준 진행도(대략 -1~1)
+    if (p > 1) p = 1; else if (p < -1) p = -1;
+    const shift = -p * r.height * 0.10;             // 최대 ±10% (오버플로 11% 범위 내)
+    img.style.transform = 'translate3d(0,' + shift.toFixed(1) + 'px,0)';
+  }
+}
+function onParScroll() { if (!parTicking) { parTicking = true; requestAnimationFrame(updateParallax); } }
+if (parImgs.length) {
+  window.addEventListener('scroll', onParScroll, { passive: true });
+  window.addEventListener('resize', onParScroll);
+  updateParallax();
+}
