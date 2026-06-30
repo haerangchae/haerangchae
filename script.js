@@ -161,11 +161,13 @@ if (gimgs) {
   };
 
   /* --- 마우스 드래그 (데스크톱) --- */
-  let dragging = false, lastX = 0, lastT = 0, vel = 0;
+  let dragging = false, lastX = 0, lastT = 0, vel = 0, downX = 0;
   gimgs.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse' || e.button !== 0) return;   // 터치는 아래 touch 핸들러가 처리
+    if (gimgs.scrollWidth <= gimgs.clientWidth + 4) return;    // 가로 스크롤 없으면(데스크톱) 드래그 안 함 → 썸네일 클릭 보존
     cancelMomentum();
     dragging = true; lastX = e.clientX; lastT = e.timeStamp; vel = 0;
+    downX = e.clientX; window.__gMoved = false;   // 클릭/드래그 구분용
     gimgs.style.scrollSnapType = 'none';
     gimgs.classList.add('dragging');
     try { gimgs.setPointerCapture(e.pointerId); } catch (_) {}
@@ -175,6 +177,7 @@ if (gimgs) {
     if (!dragging) return;
     const dx = e.clientX - lastX;
     gimgs.scrollLeft -= dx;
+    if (Math.abs(e.clientX - downX) > 6) window.__gMoved = true;   // 실제 드래그로 판단
     vel = dx / ((e.timeStamp - lastT) || 16);
     lastX = e.clientX; lastT = e.timeStamp;
   });
@@ -194,13 +197,14 @@ if (gimgs) {
     const t = e.touches[0];
     tx = tLastX = t.clientX; ty = t.clientY;
     tScroll = gimgs.scrollLeft; tDir = null; tVel = 0; tLastT = e.timeStamp;
+    window.__gMoved = false;   // 탭/스와이프 구분용
     cancelMomentum();
   }, { passive: true });
   gimgs.addEventListener('touchmove', (e) => {
     const t = e.touches[0];
     const dx = t.clientX - tx, dy = t.clientY - ty;
     if (tDir === null) {
-      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) tDir = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) { tDir = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; window.__gMoved = true; }
       else return;
     }
     if (tDir === 'x') {
@@ -461,3 +465,138 @@ if (parImgs.length) {
   window.addEventListener('resize', onParScroll);
   updateParallax();
 }
+
+// ===== 갤러리 라이트박스(확대 보기) =====
+// 메인 갤러리 4장 + images/sub 폴더 전체를 한 캐러셀로 노출. 클릭한 이미지부터 시작.
+// sub 폴더는 manifest.json(서버가 폴더 스캔해 자동 갱신)으로 읽어 → 이미지 추가 시 자동 반영.
+(function () {
+  // 메인 갤러리 4장(항상 앞쪽 고정)
+  const MAIN = [
+    { src: 'images/gallery_01.png', alt: '루프탑 테라스 오션뷰' },
+    { src: 'images/gallery_02.png', alt: '거실' },
+    { src: 'images/gallery_03.png', alt: '오션뷰 침실' },
+    { src: 'images/gallery_04.png', alt: '욕실' }
+  ];
+  // manifest.json 로드 실패 시(예: 정적 배포에 파일 없음) 사용할 기본 sub 목록
+  const SUB_FALLBACK = [
+    'bathroom.jpg', 'bbq_01.jpg', 'bbq_02.jpg', 'bbq_03.jpg', 'bedrooms.jpg',
+    'eta_01.jpg', 'eta_02.jpg', 'kitchen_01.jpg', 'kitchen_02.jpg', 'kitchen_03.jpg', 'living_room.jpg'
+  ];
+
+  const lb = document.getElementById('lightbox');
+  if (!lb) return;
+  const imgEl = lb.querySelector('.lb-img');        // 베이스(현재 이미지)
+  const nextEl = lb.querySelector('.lb-img-next');  // 슬라이드 오버레이(새 이미지)
+  const curEl = lb.querySelector('.lb-cur');
+  const totalEl = lb.querySelector('.lb-total');
+  let idx = 0;
+  let animating = false;
+  let IMAGES = MAIN.slice();   // sub 로드 전 기본값(메인 4장은 즉시 클릭 가능)
+
+  function fileToAlt(f) { return f.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '); }
+  function setSub(files) {
+    const subs = files.map(function (f) { return { src: 'images/sub/' + f, alt: fileToAlt(f) }; });
+    IMAGES = MAIN.concat(subs);
+    totalEl.textContent = IMAGES.length;
+  }
+  setSub(SUB_FALLBACK);   // 우선 폴백으로 채우고
+  // 서버/배포의 manifest.json으로 갱신(폴더에 이미지 추가 시 자동 반영)
+  fetch('images/sub/manifest.json', { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (list) { if (Array.isArray(list) && list.length) setSub(list); })
+    .catch(function () {});
+
+  // 상대경로 src로 IMAGES 인덱스 찾기(파일명 기준 비교)
+  function base(s) { return (s || '').split('/').pop(); }
+  function indexOfSrc(src) {
+    const b = base(src);
+    for (let i = 0; i < IMAGES.length; i++) if (base(IMAGES[i].src) === b) return i;
+    return -1;
+  }
+
+  // 베이스 이미지를 즉시 표시(슬라이드 없음) — 오픈/직접 이동용
+  function setBase(i) {
+    idx = (i + IMAGES.length) % IMAGES.length;
+    imgEl.src = IMAGES[idx].src;
+    imgEl.alt = IMAGES[idx].alt;
+    curEl.textContent = idx + 1;
+    nextEl.style.display = 'none';
+  }
+
+  // dir: 1=다음(→), -1=이전(←). 새 이미지를 preload 후, 현재 이미지 "위로" 슬라이드해 덮음(깜빡임 없음)
+  function show(i, dir) {
+    const ni = (i + IMAGES.length) % IMAGES.length;
+    if (!dir) { setBase(ni); return; }
+    if (animating || ni === idx) return;
+    animating = true;
+    curEl.textContent = ni + 1;                     // 카운터는 슬라이드와 함께 갱신
+
+    const pre = new Image();
+    pre.onload = pre.onerror = function () {
+      const from = dir > 0 ? 110 : -110;            // 진행 방향 화면 밖에서 시작(자기 너비 %)
+      nextEl.src = IMAGES[ni].src;
+      nextEl.alt = IMAGES[ni].alt;
+      nextEl.style.display = 'block';
+      nextEl.style.transition = 'none';
+      nextEl.style.transform = 'translate(-50%,-50%) translateX(' + from + '%)';
+      void nextEl.offsetWidth;                      // 초기 상태 commit(reflow) → 트랜지션 확실히 발동
+      nextEl.style.transition = 'transform .42s cubic-bezier(.22,.61,.36,1)';
+      nextEl.style.transform = 'translate(-50%,-50%) translateX(0)';
+      let safety;
+      const done = function () {
+        clearTimeout(safety);
+        nextEl.removeEventListener('transitionend', done);
+        if (lb.hidden) return;                      // 슬라이드 중 닫혔으면 무시
+        setBase(ni);                                // 베이스를 새 이미지로(이미 캐시됨 → 깜빡임 없음)
+        animating = false;
+      };
+      nextEl.addEventListener('transitionend', done);
+      safety = setTimeout(done, 620);               // transitionend 미발생 대비(자체 타이머만 정리)
+    };
+    pre.src = IMAGES[ni].src;
+  }
+
+  function open(i) {
+    setBase(i);
+    imgEl.style.transition = ''; imgEl.style.transform = ''; imgEl.style.opacity = '';
+    lb.hidden = false;
+    document.body.classList.add('lb-open');
+    requestAnimationFrame(function () { lb.classList.add('is-open'); });
+  }
+  function close() {
+    lb.classList.remove('is-open');
+    document.body.classList.remove('lb-open');
+    animating = false;
+    setTimeout(function () {
+      lb.hidden = true;
+      imgEl.removeAttribute('src');
+      nextEl.style.display = 'none'; nextEl.removeAttribute('src');
+    }, 250);
+  }
+
+  lb.querySelector('.lb-close').addEventListener('click', close);
+  lb.querySelector('.lb-prev').addEventListener('click', function () { show(idx - 1, -1); });
+  lb.querySelector('.lb-next').addEventListener('click', function () { show(idx + 1, 1); });
+  lb.addEventListener('click', function (e) {     // 딤(배경) 클릭 시 닫기 — 이미지/버튼은 유지
+    if (e.target === lb || e.target.classList.contains('lb-stage')) close();
+  });
+  document.addEventListener('keydown', function (e) {   // ESC 닫기 / ←·→ 이동
+    if (lb.hidden) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowLeft') show(idx - 1, -1);
+    else if (e.key === 'ArrowRight') show(idx + 1, 1);
+  });
+
+  // 클릭 시 해당 이미지부터 오픈 — 메인 갤러리 + Stay Gallery 이미지 모두
+  function bindOpen(el) {
+    el.addEventListener('click', function () {
+      if (window.__gMoved) return;     // 드래그/스와이프 직후 클릭 무시
+      const im = el.querySelector('img');
+      if (!im) return;
+      const i = indexOfSrc(im.getAttribute('src'));
+      open(i >= 0 ? i : 0);
+    });
+  }
+  document.querySelectorAll('.gallery .g-cell').forEach(bindOpen);                       // 메인 갤러리 4장
+  document.querySelectorAll('#view-gallery .sg-cell, #view-gallery .sg-media:not(.sg-grid)').forEach(bindOpen);  // Stay Gallery 전체
+})();

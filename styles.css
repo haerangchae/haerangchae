@@ -486,3 +486,75 @@ body.route-gallery .gnb.scrolled .gnb-cta,body.route-gallery .gnb-cta{color:var(
   .sg-duo .sg-media{aspect-ratio:16 / 11;}
   .sg-checks,.sg-checks-wide{grid-template-columns:1fr;}
 }
+
+/* ╔══════════════════════════════════════════════════════════════╗
+   ║   갤러리 호버 확대 + 라이트박스(확대 보기)                     ║
+   ╚══════════════════════════════════════════════════════════════╝ */
+/* 갤러리 썸네일: 마우스 오버 시 120% 확대(프레임 안에서 줌) */
+.gallery .g-cell,
+#view-gallery .sg-cell,
+#view-gallery .sg-media:not(.sg-grid){cursor:zoom-in;}
+.gallery .g-cell img{transition:transform .55s cubic-bezier(.22,.61,.36,1);}
+@media (hover:hover){
+  .gallery .g-cell:hover img{transform:scale(1.2);}
+}
+
+/* 라이트박스 오버레이(딤) */
+.lightbox{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(15,13,11,.86);
+  backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  opacity:0;transition:opacity .25s ease;
+}
+.lightbox.is-open{opacity:1;}
+.lightbox[hidden]{display:none;}
+body.lb-open{overflow:hidden;}                       /* 팝업 열릴 때 배경 스크롤 잠금 */
+
+.lb-stage{display:flex;flex-direction:column;align-items:center;}
+.lb-imgwrap{position:relative;line-height:0;}          /* 이미지 크기에 딱 맞는 박스 → 버튼 기준점 */
+/* 이미지 클립 영역: 슬라이드는 이 안에서만(밖으로 안 보임). 버튼은 이 밖(.lb-imgwrap)에 있어 안 잘림 */
+.lb-clip{
+  position:relative;overflow:hidden;line-height:0;
+  border-radius:6px;box-shadow:0 24px 70px rgba(0,0,0,.5);background:#000;
+  transform:scale(.97);transition:transform .25s ease;
+}
+.lightbox.is-open .lb-clip{transform:scale(1);}
+.lb-img{
+  display:block;max-width:min(1600px,92vw);max-height:82vh;width:auto;height:auto;object-fit:contain;
+}
+/* 슬라이드 오버레이: 현재 이미지 위로 새 이미지가 덮으며 들어옴(깜빡임 없음, 클립 안에서만 이동) */
+.lb-img-next{
+  display:none;position:absolute;top:50%;left:50%;
+  max-width:min(1600px,92vw);max-height:82vh;width:auto;height:auto;
+  object-fit:contain;background:#000;z-index:1;will-change:transform;
+}
+
+/* 버튼은 이미지 박스(.lb-imgwrap) 기준 → 화면이 커져도 항상 이미지 모서리에 반 걸침 */
+.lb-close,.lb-prev,.lb-next{
+  position:absolute;z-index:3;border:0;border-radius:50%;cursor:pointer;color:#fff;
+  background:rgba(255,255,255,.1);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(2px);
+  display:flex;align-items:center;justify-content:center;line-height:1;transition:background .2s,transform .2s;
+}
+/* 닫기(X) — 이미지 우측 상단 모서리에 반 걸침 */
+.lb-close{top:0;right:0;transform:translate(50%,-50%);width:44px;height:44px;}
+/* 좌우 이동 — 이미지 좌/우 가장자리에 반 걸침 */
+.lb-prev,.lb-next{top:50%;width:50px;height:50px;}
+.lb-prev{left:0;transform:translate(-50%,-50%);}
+.lb-next{right:0;transform:translate(50%,-50%);}
+/* 아이콘(SVG): 세 버튼 모두 동일 크기·동일 stroke-width → 두께 동일 */
+.lb-close svg,.lb-prev svg,.lb-next svg{width:22px;height:22px;display:block;}
+.lb-close:hover{background:rgba(20,18,16,.85);transform:translate(50%,-50%) scale(1.08);}
+.lb-prev:hover{background:rgba(20,18,16,.85);transform:translate(-50%,-50%) scale(1.08);}
+.lb-next:hover{background:rgba(20,18,16,.85);transform:translate(50%,-50%) scale(1.08);}
+/* 카운터 — 이미지 아래 24px */
+.lb-counter{
+  margin-top:24px;color:rgba(255,255,255,.85);
+  font-family:var(--en-body);font-size:14px;letter-spacing:.12em;line-height:1;
+}
+@media (max-width:560px){
+  .lb-close{width:38px;height:38px;}
+  .lb-prev,.lb-next{width:42px;height:42px;}
+  .lb-close svg,.lb-prev svg,.lb-next svg{width:19px;height:19px;}
+  .lb-img{max-width:94vw;max-height:78vh;}
+}

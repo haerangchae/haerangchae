@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Allura&family=Manrope:wght@400;500;600;700&family=Nanum+Myeongjo:wght@400;700;800&family=Gowun+Batang:wght@400;700&family=Radley&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=29">
 <noscript><style>.reveal-group>*,.reveal{opacity:1!important;transform:none!important;}</style></noscript>
 </head>
 <body>
@@ -254,7 +254,7 @@
       </div>
     </section>
 
-    <!-- Bedrooms (※ sub 폴더에 침실 이미지가 없어 기존 오션뷰 침실 이미지 임시 사용) -->
+    <!-- Bedrooms -->
     <section class="sg-room reveal-group">
       <div class="sg-media" data-parallax><img src="images/sub/bedrooms.jpg" alt="침실" loading="lazy"></div>
       <div class="sg-caption">
@@ -392,6 +392,28 @@
 
 <div class="nav-backdrop"></div>
 
+<!-- ===== 갤러리 라이트박스(확대 보기) ===== -->
+<div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="갤러리 이미지 크게 보기">
+  <div class="lb-stage">
+    <div class="lb-imgwrap">
+      <div class="lb-clip">
+        <img class="lb-img" src="" alt="">
+        <img class="lb-img-next" src="" alt="" aria-hidden="true">
+      </div>
+      <button class="lb-close" type="button" aria-label="닫기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <button class="lb-prev" type="button" aria-label="이전 이미지">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <button class="lb-next" type="button" aria-label="다음 이미지">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="lb-counter"><span class="lb-cur">1</span> / <span class="lb-total">14</span></div>
+  </div>
+</div>
+
 <!-- 배경음악: 유튜브 영상은 숨기고 소리만 (첫 클릭/터치 시 재생) -->
 <div id="bgm-player" aria-hidden="true"></div>
 <button class="bgm-toggle" aria-label="배경음악 켜기/끄기" title="배경음악">
@@ -399,6 +421,6 @@
   <svg class="ic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 9v6h4l5 4V5L8 9H4Z" stroke-linejoin="round"/><path d="M22 9l-6 6M16 9l6 6" stroke-linecap="round"/></svg>
 </button>
 
-<script src="script.js?v=20"></script>
+<script src="script.js?v=28"></script>
 </body>
 </html>
