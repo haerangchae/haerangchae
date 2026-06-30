@@ -411,13 +411,23 @@ document.querySelectorAll('.copy-btn').forEach(function (btn) {
   const homeView = document.getElementById('top');
   const galleryView = document.getElementById('view-gallery');
   if (!galleryView) return;
+  const stayLink = document.querySelector('.gnb-nav a[href="#stay"]');
   function route() {
     const isStay = location.hash === '#stay';
     galleryView.hidden = !isStay;
     if (homeView) homeView.hidden = isStay;
     document.body.classList.toggle('route-gallery', isStay);
-    if (isStay) window.scrollTo(0, 0);
-    if (typeof updateParallax === 'function') requestAnimationFrame(updateParallax);
+    if (stayLink) stayLink.classList.toggle('is-current', isStay);   // 선택된 메뉴 밑줄
+    // 뷰 전환(홈↔갤러리) 시 항상 최상단으로 — smooth 애니메이션 없이 즉시 점프
+    var html = document.documentElement;
+    var prevBehavior = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+    requestAnimationFrame(function () {
+      window.scrollTo(0, 0);                 // 앵커(#top) 스크롤까지 덮어쓰기
+      html.style.scrollBehavior = prevBehavior;
+      if (typeof updateParallax === 'function') updateParallax();
+    });
   }
   window.addEventListener('hashchange', route);
   route();   // 최초 진입 시 해시 반영
