@@ -474,8 +474,8 @@ body.route-gallery .gnb.scrolled .gnb-cta,body.route-gallery .gnb-cta{color:var(
   .sg-cap-name p{font-size:13px;}                        /* 15→13 */
   .sg-checks li{font-size:14px;}                         /* 16→14 */
   .sg-info-title{font-size:20px;}                        /* 24→20 */
-  .sg-info-block h4{font-size:14px;}                     /* 16→14 */
-  .sg-info-block li{font-size:12px;}                     /* 14→12 */
+  .sg-info-block h4{font-size:16px;}                     /* 16→14 */
+  .sg-info-block li{font-size:14px;}                     /* 14→12 */
   .sg-info-note{font-size:12px;}                         /* 14→12 */
 }
 @media (max-width:560px){
