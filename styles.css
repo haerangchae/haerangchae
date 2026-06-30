@@ -554,7 +554,9 @@ body.lb-open{overflow:hidden;}                       /* 팝업 열릴 때 배경
 }
 @media (max-width:560px){
   .lb-close{width:38px;height:38px;}
-  .lb-prev,.lb-next{width:42px;height:42px;}
-  .lb-close svg,.lb-prev svg,.lb-next svg{width:19px;height:19px;}
-  .lb-img{max-width:94vw;max-height:78vh;}
+  .lb-close svg{width:19px;height:19px;}
+  /* 모바일: 좌우 화살표 버튼 제거 → 스와이프로 이동 */
+  .lb-prev,.lb-next{display:none;}
+  /* 모바일 팝업 이미지: 가로 87vw · 높이 고정 카드(꽉 채움) */
+  .lb-img,.lb-img-next{width:87vw;height:380px;max-width:87vw;max-height:80vh;object-fit:cover;}
 }

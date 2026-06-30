@@ -470,12 +470,12 @@ if (parImgs.length) {
 // 메인 갤러리 4장 + images/sub 폴더 전체를 한 캐러셀로 노출. 클릭한 이미지부터 시작.
 // sub 폴더는 manifest.json(서버가 폴더 스캔해 자동 갱신)으로 읽어 → 이미지 추가 시 자동 반영.
 (function () {
-  // 메인 갤러리 4장(항상 앞쪽 고정)
+  // 메인 갤러리 4장(항상 앞쪽 고정) — 4번은 sub/bathroom.jpg와 동일 사진이라 그걸로 통일(중복 1장 제거)
   const MAIN = [
     { src: 'images/gallery_01.png', alt: '루프탑 테라스 오션뷰' },
     { src: 'images/gallery_02.png', alt: '거실' },
     { src: 'images/gallery_03.png', alt: '오션뷰 침실' },
-    { src: 'images/gallery_04.png', alt: '욕실' }
+    { src: 'images/sub/bathroom.jpg', alt: '욕실' }
   ];
   // manifest.json 로드 실패 시(예: 정적 배포에 파일 없음) 사용할 기본 sub 목록
   const SUB_FALLBACK = [
@@ -495,7 +495,11 @@ if (parImgs.length) {
 
   function fileToAlt(f) { return f.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' '); }
   function setSub(files) {
-    const subs = files.map(function (f) { return { src: 'images/sub/' + f, alt: fileToAlt(f) }; });
+    // MAIN에 이미 들어간 파일명은 sub에서 제외 → 같은 이미지 중복 노출 방지
+    const used = MAIN.map(function (m) { return m.src.split('/').pop(); });
+    const subs = files
+      .filter(function (f) { return used.indexOf(f) === -1; })
+      .map(function (f) { return { src: 'images/sub/' + f, alt: fileToAlt(f) }; });
     IMAGES = MAIN.concat(subs);
     totalEl.textContent = IMAGES.length;
   }
@@ -586,6 +590,22 @@ if (parImgs.length) {
     else if (e.key === 'ArrowLeft') show(idx - 1, -1);
     else if (e.key === 'ArrowRight') show(idx + 1, 1);
   });
+
+  // 모바일: 좌우 스와이프로 이미지 이동(화살표 버튼 대체)
+  let sx = 0, sy = 0, swiping = false;
+  lb.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { swiping = false; return; }
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; swiping = true;
+  }, { passive: true });
+  lb.addEventListener('touchend', function (e) {
+    if (!swiping) return; swiping = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) {
+      if (dx < 0) show(idx + 1, 1);    // ←로 밀면 다음
+      else show(idx - 1, -1);          // →로 밀면 이전
+    }
+  }, { passive: true });
 
   // 클릭 시 해당 이미지부터 오픈 — 메인 갤러리 + Stay Gallery 이미지 모두
   function bindOpen(el) {
